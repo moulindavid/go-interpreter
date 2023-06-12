@@ -1,16 +1,19 @@
 package lexer
 
-import "monkey/token"
+import (
+	"monkey/token"
+)
 
 type Lexer struct {
-	input        string
-	position     int  // current position in input (points to current char)
-	readPosition int  // current reading position in input (after current char)
-	ch           byte // current char under examination
+	characters   []rune // Rune slice of the characters string
+	position     int    // current position in characters (points to current char)
+	readPosition int    // current reading position in characters (after current char)
+	ch           rune   // current char under examination
+	prevToken    token.Token
 }
 
-func New(input string) *Lexer {
-	l := &Lexer{input: input}
+func New(characters string) *Lexer {
+	l := &Lexer{characters: []rune(characters)}
 	l.readChar()
 	return l
 }
@@ -67,7 +70,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Literal = ""
 		tok.Type = token.EOF
 	default:
-		if isLetter(l.ch) {
+		if isIdentifier(l.ch) {
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
@@ -80,6 +83,7 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	}
 	l.readChar()
+	l.prevToken = tok
 	return tok
 }
 
@@ -90,33 +94,38 @@ func (l *Lexer) skipWhitespace() {
 }
 
 func (l *Lexer) readChar() {
-	if l.readPosition >= len(l.input) {
+	if l.readPosition >= len(l.characters) {
 		l.ch = 0
 	} else {
-		l.ch = l.input[l.readPosition]
+		l.ch = l.characters[l.readPosition]
 	}
 
 	l.position = l.readPosition
 	l.readPosition += 1
 }
 
-func newToken(tokenType token.TokenType, ch byte) token.Token {
+func newToken(tokenType token.TokenType, ch rune) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
-func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+func isIdentifier(ch rune) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || isInEmojiRange(ch)
+}
+
+func isInEmojiRange(ch rune) bool {
+	return ch >= '\U0001F000' && ch <= '\U0001FFFF'
 }
 
 func (l *Lexer) readIdentifier() string {
 	position := l.position
-	for isLetter(l.ch) {
+	for isIdentifier(l.ch) {
 		l.readChar()
 	}
-	return l.input[position:l.position]
+
+	return string(l.characters[position:l.position])
 }
 
-func isDigit(ch byte) bool {
+func isDigit(ch rune) bool {
 	return '0' <= ch && ch <= '9'
 }
 
@@ -125,13 +134,13 @@ func (l *Lexer) readNumber() string {
 	for isDigit(l.ch) {
 		l.readChar()
 	}
-	return l.input[position:l.position]
+	return string(l.characters[position:l.position])
 }
 
-func (l *Lexer) peekChar() byte {
-	if l.readPosition >= len(l.input) {
+func (l *Lexer) peekChar() rune {
+	if l.readPosition >= len(l.characters) {
 		return 0
 	} else {
-		return l.input[l.readPosition]
+		return l.characters[l.readPosition]
 	}
 }
