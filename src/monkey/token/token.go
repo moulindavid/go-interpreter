@@ -7,8 +7,8 @@ const (
 	EOF     = "EOF"
 
 	// Identifiers + literals
-	IDENT = "IDENT" 
-	INT   = "INT"  
+	IDENT = "IDENT"
+	INT   = "INT"
 
 	// Operators
 	ASSIGN   = "="
